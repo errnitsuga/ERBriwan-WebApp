@@ -9,7 +9,7 @@ import {
   LogOut
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import logo from '@/assets/logo.png';
+import logo from '@/assets/logo.svg';
 
 export function Layout({ onLogout }: { onLogout: () => void }) {
   const location = useLocation();

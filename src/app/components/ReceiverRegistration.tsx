@@ -11,34 +11,74 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { registerResponder, RegisterResponderData } from '@/supabase_db/api';
 
 export function ReceiverRegistration() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    fullName: '',
-    phone: '',
+    firstname: '',
+    lastname: '',
+    middlename: '',
+    phone_number: '',
     organization: '',
-    role: 'Responder',
-    assignedArea: '',
+    region: '',
+    city_municipality: '',
+    barangay: '',
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     setIsSubmitting(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
+
+    try {
+      const responderData: RegisterResponderData = {
+        email: formData.email,
+        password: formData.password,
+        firstname: formData.firstname,
+        lastname: formData.lastname,
+        middlename: formData.middlename,
+        organization: formData.organization,
+        phone_number: formData.phone_number,
+        region: formData.region,
+        city_municipality: formData.city_municipality,
+        barangay: formData.barangay,
+      };
+
+      await registerResponder(responderData);
       setIsSuccess(true);
+      
+      // Reset form after success
+      setFormData({
+        email: '',
+        password: '',
+        firstname: '',
+        lastname: '',
+        middlename: '',
+        phone_number: '',
+        organization: '',
+        region: '',
+        city_municipality: '',
+        barangay: '',
+      });
+
+      // Hide success message after 3 seconds
       setTimeout(() => setIsSuccess(false), 3000);
-    }, 1500);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to register responder. Please try again.');
+      console.error('Registration error:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -89,7 +129,7 @@ export function ReceiverRegistration() {
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-2">Activation Successful!</h3>
                 <p className="text-gray-500 max-w-sm">
-                  The receiver account for {formData.fullName} has been created and activated.
+                  The responder account for {formData.firstname} {formData.lastname} has been created and activated.
                 </p>
                 <button 
                   onClick={() => setIsSuccess(false)}
@@ -102,20 +142,53 @@ export function ReceiverRegistration() {
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1.5">
-                    <label className="text-sm font-semibold text-gray-700 ml-1">Full Name</label>
+                    <label className="text-sm font-semibold text-gray-700 ml-1">First Name</label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                       <input 
                         required
-                        name="fullName"
-                        value={formData.fullName}
+                        name="firstname"
+                        value={formData.firstname}
                         onChange={handleChange}
                         type="text" 
-                        placeholder="John Doe"
+                        placeholder="John"
                         className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                       />
                     </div>
                   </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold text-gray-700 ml-1">Last Name</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                      <input 
+                        required
+                        name="lastname"
+                        value={formData.lastname}
+                        onChange={handleChange}
+                        type="text" 
+                        placeholder="Doe"
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-gray-700 ml-1">Middle Name (Optional)</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <input 
+                      name="middlename"
+                      value={formData.middlename}
+                      onChange={handleChange}
+                      type="text" 
+                      placeholder="Middle name"
+                      className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1.5">
                     <label className="text-sm font-semibold text-gray-700 ml-1">Email Address</label>
                     <div className="relative">
@@ -131,9 +204,6 @@ export function ReceiverRegistration() {
                       />
                     </div>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1.5">
                     <label className="text-sm font-semibold text-gray-700 ml-1">Password</label>
                     <div className="relative">
@@ -149,14 +219,17 @@ export function ReceiverRegistration() {
                       />
                     </div>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1.5">
                     <label className="text-sm font-semibold text-gray-700 ml-1">Phone Number</label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                       <input 
                         required
-                        name="phone"
-                        value={formData.phone}
+                        name="phone_number"
+                        value={formData.phone_number}
                         onChange={handleChange}
                         type="tel" 
                         placeholder="+63 912 345 6789"
@@ -164,9 +237,6 @@ export function ReceiverRegistration() {
                       />
                     </div>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1.5">
                     <label className="text-sm font-semibold text-gray-700 ml-1">Organization</label>
                     <div className="relative">
@@ -175,6 +245,7 @@ export function ReceiverRegistration() {
                         name="organization"
                         value={formData.organization}
                         onChange={handleChange}
+                        required
                         className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
                       >
                         <option value="">Select Organization</option>
@@ -185,21 +256,62 @@ export function ReceiverRegistration() {
                       </select>
                     </div>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-1.5">
-                    <label className="text-sm font-semibold text-gray-700 ml-1">Assigned Area</label>
+                    <label className="text-sm font-semibold text-gray-700 ml-1">Region</label>
                     <div className="relative">
                       <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                       <input 
-                        name="assignedArea"
-                        value={formData.assignedArea}
+                        required
+                        name="region"
+                        value={formData.region}
                         onChange={handleChange}
                         type="text" 
-                        placeholder="District 1, Zone B"
+                        placeholder="NCR"
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold text-gray-700 ml-1">City/Municipality</label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                      <input 
+                        required
+                        name="city_municipality"
+                        value={formData.city_municipality}
+                        onChange={handleChange}
+                        type="text" 
+                        placeholder="Manila"
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold text-gray-700 ml-1">Barangay</label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                      <input 
+                        required
+                        name="barangay"
+                        value={formData.barangay}
+                        onChange={handleChange}
+                        type="text" 
+                        placeholder="Bagumbayan"
                         className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                       />
                     </div>
                   </div>
                 </div>
+
+                {error && (
+                  <div className="flex items-center gap-2 p-4 bg-red-50 rounded-xl border border-red-100 text-red-800">
+                    <AlertCircle size={20} className="shrink-0" />
+                    <p className="text-xs">{error}</p>
+                  </div>
+                )}
 
                 <div className="flex items-center gap-2 p-4 bg-amber-50 rounded-xl border border-amber-100 text-amber-800">
                   <AlertCircle size={20} className="shrink-0" />
@@ -209,6 +321,7 @@ export function ReceiverRegistration() {
                 </div>
 
                 <button 
+                  type="submit"
                   disabled={isSubmitting}
                   className="w-full py-4 bg-red-600 text-white rounded-xl font-bold text-lg hover:bg-red-700 shadow-lg shadow-red-200 transition-all active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-2"
                 >
@@ -221,7 +334,7 @@ export function ReceiverRegistration() {
                       />
                       Activating Account...
                     </>
-                  ) : 'Activate Receiver Account'}
+                  ) : 'Activate Responder Account'}
                 </button>
               </form>
             )}

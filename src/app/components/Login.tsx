@@ -1,28 +1,61 @@
 import React, { useState } from 'react';
 import { Shield, Lock, User, Mail, ArrowRight, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo.svg";
+import supabase from "@/supabase_db/supabase_client";
 
 export function Login({ onLogin }: { onLogin: () => void }) {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotStep, setForgotStep] = useState(1); // 1: Input, 2: Success
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (username === 'admin' && password === 'admin123') {
-      onLogin();
-    } else {
-      setError('Invalid username or password');
+    setError('');
+    setLoading(true);
+
+    try {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        setError(signInError.message || 'Invalid email or password');
+      } else if (data?.session) {
+        onLogin();
+      }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleForgotSubmit = (e: React.FormEvent) => {
+  const handleForgotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setForgotStep(2);
+    setError('');
+    setLoading(true);
+
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(forgotEmail);
+
+      if (resetError) {
+        setError(resetError.message || 'Failed to send reset email');
+      } else {
+        setForgotStep(2);
+      }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -52,14 +85,14 @@ export function Login({ onLogin }: { onLogin: () => void }) {
 
             <form onSubmit={handleLogin} className="space-y-5">
               <div className="space-y-1">
-                <label className="text-sm font-bold text-gray-700 ml-1">Username</label>
+                <label className="text-sm font-bold text-gray-700 ml-1">Email</label>
                 <div className="relative group">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-600 transition-colors" size={20} />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-600 transition-colors" size={20} />
                   <input 
-                    type="text" 
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Enter username"
+                    type="email" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
                     className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium"
                     required
                   />
@@ -103,10 +136,11 @@ export function Login({ onLogin }: { onLogin: () => void }) {
 
               <button 
                 type="submit"
-                className="w-full py-4 bg-[#1E3A8A] text-white rounded-2xl font-bold text-lg hover:bg-blue-800 shadow-xl shadow-blue-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-4"
+                disabled={loading}
+                className="w-full py-4 bg-[#1E3A8A] text-white rounded-2xl font-bold text-lg hover:bg-blue-800 shadow-xl shadow-blue-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                Sign In
-                <ArrowRight size={20} />
+                {loading ? 'Signing In...' : 'Sign In'}
+                {!loading && <ArrowRight size={20} />}
               </button>
             </form>
         </div>
