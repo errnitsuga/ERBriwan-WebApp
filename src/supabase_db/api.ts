@@ -1,66 +1,80 @@
-import axios from "axios";
 import supabase from "./supabase_client";
 
 const API_BASE_URL = "https://er-briwan-api.vercel.app/superadmin";
 
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+type Json = Record<string, any> | any[];
 
-// Attach Supabase JWT access token to every request (when available)
-apiClient.interceptors.request.use(async (config) => {
+async function getAuthHeaders() {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
   try {
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
 
     if (token) {
-      config.headers = config.headers ?? {};
-      config.headers.Authorization = `Bearer ${token}`;
+      headers.Authorization = `Bearer ${token}`;
     }
   } catch (error) {
     console.warn("Unable to attach Supabase auth token:", error);
   }
 
-  return config;
-});
+  return headers;
+}
+
+async function request<T extends Json>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const baseHeaders = await getAuthHeaders();
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      ...baseHeaders,
+      ...(options.headers as Record<string, string> | undefined),
+    },
+  });
+
+  let body: any = null;
+  try {
+    // API is expected to always return JSON
+    body = await response.json();
+  } catch {
+    // Non‑JSON response; leave body as null
+  }
+
+  if (!response.ok) {
+    const message =
+      body?.message ||
+      body?.error ||
+      `Request failed with status ${response.status}`;
+    throw new Error(message);
+  }
+
+  return body as T;
+}
 
 // Register Device
 export const registerDevice = async (deviceId: string, deviceType: string) => {
-  try {
-    const response = await apiClient.post("/registerDevice", {
+  return request("/registerDevice", {
+    method: "POST",
+    body: JSON.stringify({
       device_id: deviceId,
       device_type: deviceType,
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error registering device:", error);
-    throw error;
-  }
+    }),
+  });
 };
 
 // Get All Responders
 export const getAllResponders = async () => {
-  try {
-    const response = await apiClient.get("/getAllResponders");
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching responders:", error);
-    throw error;
-  }
+  return request("/getAllResponders");
 };
 
 // Get All Users
 export const getAllUsers = async () => {
-  try {
-    const response = await apiClient.get("/getAllUsers");
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching users:", error);
-    throw error;
-  }
+  return request("/getAllUsers");
 };
 
 // Register Responder
@@ -78,13 +92,8 @@ export interface RegisterResponderData {
 }
 
 export const registerResponder = async (data: RegisterResponderData) => {
-  try {
-    const response = await apiClient.post("/registerResponder", data);
-    return response.data;
-  } catch (error) {
-    console.error("Error registering responder:", error);
-    throw error;
-  }
+  return request("/registerResponder", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 };
-
-export default apiClient;

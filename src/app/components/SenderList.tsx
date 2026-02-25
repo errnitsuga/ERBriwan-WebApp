@@ -37,21 +37,52 @@ export function SenderList() {
     setError('');
     try {
       const data = await getAllUsers();
+      console.log('getAllUsers raw response:', data);
 
       // Normalize different possible response shapes from the API
-      let usersArray: User[] = [];
+      let usersArray: any[] = [];
+
       if (Array.isArray(data)) {
         usersArray = data;
       } else if (data?.data && Array.isArray(data.data)) {
         usersArray = data.data;
       } else if (data?.users && Array.isArray(data.users)) {
         usersArray = data.users;
-      } else {
-        console.warn('Unexpected getAllUsers API response format:', data);
-        usersArray = [];
+      } else if (data?.senders && Array.isArray(data.senders)) {
+        // In case backend uses "senders" terminology
+        usersArray = data.senders;
+      } else if (data && typeof data === 'object') {
+        // Fallback: pick the first array-valued property
+        const firstArrayProp = Object.values(data).find((v) => Array.isArray(v)) as
+          | User[]
+          | undefined;
+        if (firstArrayProp) {
+          usersArray = firstArrayProp;
+        }
       }
 
-      setUsers(usersArray);
+      if (!usersArray.length) {
+        console.warn('Unexpected getAllUsers API response format, no users array found:', data);
+      }
+
+      // Map backend fields to the UI-friendly User shape
+      const mappedUsers: User[] = usersArray.map((u) => {
+        const fullName = `${u.firstname ?? ""} ${u.lastname ?? ""}`.trim();
+        return {
+          // always keep original id
+          id: u.id,
+          // derived / mapped fields used in the UI
+          name: fullName || undefined,
+          email: u.email ?? undefined,
+          phone_number: u.contact ?? u.phone_number ?? undefined,
+          created_at: u.registered_at ?? u.created_at ?? undefined,
+          // keep all original fields as passthrough
+          ...u,
+        };
+      });
+
+      console.log("Mapped users for UI:", mappedUsers);
+      setUsers(mappedUsers);
     } catch (err) {
       setError('Failed to fetch users. Please try again.');
       console.error('Error fetching users:', err);
@@ -118,12 +149,13 @@ export function SenderList() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {users
-            .filter((user: User) => 
-              (user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
-              (user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
-            )
-            .map((user: User) => (
+          {(searchTerm.trim() ? users.filter((user: User) => {
+              const term = searchTerm.toLowerCase();
+              const nameMatch = (user.name || "").toLowerCase().includes(term);
+              const emailMatch = (user.email || "").toLowerCase().includes(term);
+              return nameMatch || emailMatch;
+            }) : users
+          ).map((user: User) => (
             <div key={user.id} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex justify-between items-start mb-4">
                 <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-lg">
