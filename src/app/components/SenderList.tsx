@@ -9,10 +9,13 @@ import {
   Phone,
   AlertCircle,
   IdCard,
+  Check,
+  X,
 } from "lucide-react";
-import { getAllUsers } from "@/supabase_db/api";
+import { getAllUsers, verifyUser, unverifyUser } from "@/supabase_db/api";
 import { motion } from "motion/react";
 import supabase from "@/supabase_db/supabase_client";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +29,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 import {
   CartesianGrid,
   Cell,
@@ -309,6 +321,12 @@ export function SenderList() {
   const [devicePerformanceLoading, setDevicePerformanceLoading] =
     useState(false);
   const [devicePerformanceError, setDevicePerformanceError] = useState("");
+  const [isVerificationDialogOpen, setIsVerificationDialogOpen] =
+    useState(false);
+  const [verificationAction, setVerificationAction] = useState<
+    "verify" | "unverify"
+  >("verify");
+  const [verificationLoading, setVerificationLoading] = useState(false);
 
   useEffect(() => {
     fetchSenders();
@@ -672,6 +690,67 @@ export function SenderList() {
     }
   };
 
+  const handleVerificationConfirm = async () => {
+    if (!selectedSender) {
+      return;
+    }
+
+    setVerificationLoading(true);
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const authUid = authData?.user?.id;
+
+      if (!authUid) {
+        throw new Error("Unable to get current user ID for verification");
+      }
+
+      if (verificationAction === "verify") {
+        await verifyUser(selectedSender.id, authUid);
+        toast.success("User verified successfully!");
+      } else {
+        await unverifyUser(selectedSender.id);
+        toast.success("User unverified successfully!");
+      }
+
+      // Update the selected sender state
+      setSelectedSender((prev) =>
+        prev
+          ? {
+              ...prev,
+              is_verified: verificationAction === "verify",
+            }
+          : null,
+      );
+
+      // Update the senders list
+      setSenders((prev) =>
+        prev.map((sender) =>
+          sender.id === selectedSender.id
+            ? {
+                ...sender,
+                is_verified: verificationAction === "verify",
+              }
+            : sender,
+        ),
+      );
+
+      setIsVerificationDialogOpen(false);
+    } catch (err: any) {
+      toast.error(
+        err?.message ||
+          `Failed to ${verificationAction} user. Please try again.`,
+      );
+      console.error("Verification error:", err);
+    } finally {
+      setVerificationLoading(false);
+    }
+  };
+
+  const openVerificationConfirm = (action: "verify" | "unverify") => {
+    setVerificationAction(action);
+    setIsVerificationDialogOpen(true);
+  };
+
   const filteredSenders = senders.filter((sender: Sender) => {
     const searchLower = normalizeSearchText(searchTerm);
     if (!searchLower) {
@@ -816,11 +895,19 @@ export function SenderList() {
                                 `${sender.firstname || "Unknown"} ${sender.lastname || "User"}`,
                                 searchTerm,
                               )}
-                              {sender.is_verified && (
+                              {sender.is_verified ? (
                                 <BadgeCheck
                                   size={14}
                                   className="text-blue-500"
+                                  title="Verified"
                                 />
+                              ) : (
+                                <div
+                                  className="w-3.5 h-3.5 rounded-full bg-gray-300 flex items-center justify-center"
+                                  title="Unverified"
+                                >
+                                  <X size={10} className="text-white" />
+                                </div>
                               )}
                             </div>
                             <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
@@ -1050,6 +1137,80 @@ export function SenderList() {
                     />
                   </div>
                 )}
+              </div>
+
+              <div className="rounded-xl border border-purple-200 p-4 bg-purple-50/60">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <BadgeCheck size={16} className="text-purple-700" />
+                      <p className="text-sm font-semibold text-purple-900">
+                        User Verification Status
+                      </p>
+                    </div>
+                    <p className="text-xs text-purple-700 mt-1">
+                      Current Status:{" "}
+                      <span className="font-semibold">
+                        {selectedSender.is_verified ? "Verified" : "Unverified"}
+                      </span>
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {selectedSender.is_verified ? (
+                      <button
+                        onClick={() => openVerificationConfirm("unverify")}
+                        disabled={verificationLoading}
+                        className="inline-flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {verificationLoading ? (
+                          <>
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{
+                                duration: 1,
+                                repeat: Infinity,
+                                ease: "linear",
+                              }}
+                              className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+                            />
+                            Unverifying...
+                          </>
+                        ) : (
+                          <>
+                            <X size={16} />
+                            Unverify User
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => openVerificationConfirm("verify")}
+                        disabled={verificationLoading}
+                        className="inline-flex items-center gap-2 rounded-lg bg-green-500 px-4 py-2 text-sm font-semibold text-white hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {verificationLoading ? (
+                          <>
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{
+                                duration: 1,
+                                repeat: Infinity,
+                                ease: "linear",
+                              }}
+                              className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+                            />
+                            Verifying...
+                          </>
+                        ) : (
+                          <>
+                            <Check size={16} />
+                            Verify User
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="rounded-xl border border-blue-200 p-4 bg-blue-50/60">
@@ -1499,6 +1660,44 @@ export function SenderList() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={isVerificationDialogOpen}
+        onOpenChange={setIsVerificationDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {verificationAction === "verify"
+                ? "Verify User"
+                : "Unverify User"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {verificationAction === "verify"
+                ? `Are you sure you want to verify ${selectedSender?.firstname} ${selectedSender?.lastname}? This will mark their account as verified.`
+                : `Are you sure you want to unverify ${selectedSender?.firstname} ${selectedSender?.lastname}? This will remove their verified status.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex gap-3">
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleVerificationConfirm}
+              disabled={verificationLoading}
+              className={
+                verificationAction === "verify"
+                  ? "bg-green-500 hover:bg-green-600"
+                  : "bg-red-500 hover:bg-red-600"
+              }
+            >
+              {verificationLoading
+                ? "Processing..."
+                : verificationAction === "verify"
+                  ? "Verify"
+                  : "Unverify"}
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

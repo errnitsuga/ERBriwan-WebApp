@@ -25,7 +25,7 @@ async function getAuthHeaders() {
 
 async function request<T extends Json>(
   path: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<T> {
   const baseHeaders = await getAuthHeaders();
 
@@ -96,4 +96,38 @@ export const registerResponder = async (data: RegisterResponderData) => {
     method: "POST",
     body: JSON.stringify(data),
   });
+};
+
+// Verify User - Updates is_verified status and verifier_id directly via Supabase
+export const verifyUser = async (userId: string, verifierId: string) => {
+  const { data, error } = await supabase
+    .from("user_tbl")
+    .update({
+      is_verified: true,
+      verifier_id: verifierId,
+    })
+    .eq("id", userId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+};
+
+// Unverify User - Updates is_verified status and clears verifier_id
+export const unverifyUser = async (userId: string) => {
+  const { data, error } = await supabase
+    .from("user_tbl")
+    .update({
+      is_verified: false,
+      verifier_id: null,
+    })
+    .eq("id", userId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
 };
