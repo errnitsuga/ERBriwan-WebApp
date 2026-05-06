@@ -124,12 +124,13 @@ export function Layout({ onLogout }: { onLogout: () => void }) {
       {/* Mobile navigation drawer */}
       {isMobileNavOpen && (
         <div className="fixed inset-0 z-30 flex md:hidden">
-          <button
-            type="button"
-            className="flex-1 bg-black/40"
-            onClick={() => setIsMobileNavOpen(false)}
-          />
-          <aside className="relative w-72 max-w-[80%] bg-[#1E3A8A] text-white flex flex-col shadow-2xl">
+          <motion.aside
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="relative w-72 max-w-[80%] bg-[#1E3A8A] text-white flex flex-col shadow-2xl"
+          >
             <div className="p-6 flex flex-col items-center border-b border-blue-800/50 flex-shrink-0">
               <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-4 shadow-inner">
                 <img 
@@ -184,7 +185,12 @@ export function Layout({ onLogout }: { onLogout: () => void }) {
                 <span className="font-medium">Logout</span>
               </button>
             </div>
-          </aside>
+          </motion.aside>
+          <button
+            type="button"
+            className="flex-1 bg-black/40"
+            onClick={() => setIsMobileNavOpen(false)}
+          />
         </div>
       )}
     </div>
