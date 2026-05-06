@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
   Search,
-  Filter,
   MoreVertical,
   BadgeCheck,
   Clock,
@@ -293,6 +292,8 @@ const combineAddress = (
 
 export function SenderList() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(0);
+  const ITEMS_PER_PAGE = 10;
   const [senders, setSenders] = useState<Sender[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -313,6 +314,10 @@ export function SenderList() {
   useEffect(() => {
     fetchSenders();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [searchTerm]);
 
   const fetchSenders = async () => {
     setLoading(true);
@@ -695,6 +700,25 @@ export function SenderList() {
     return searchableText.includes(searchLower);
   });
 
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredSenders.length / ITEMS_PER_PAGE);
+  const paginatedSenders = filteredSenders.slice(
+    currentPage * ITEMS_PER_PAGE,
+    (currentPage + 1) * ITEMS_PER_PAGE,
+  );
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages - 1) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 0) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -721,12 +745,6 @@ export function SenderList() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button
-            onClick={fetchSenders}
-            className="p-2 bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50"
-          >
-            <Filter size={20} />
-          </button>
         </div>
       </div>
 
@@ -799,7 +817,7 @@ export function SenderList() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filteredSenders.map((sender: Sender) => (
+                  {paginatedSenders.map((sender: Sender) => (
                     <tr
                       key={sender.id}
                       className="hover:bg-blue-50/30 transition-colors"
@@ -891,13 +909,24 @@ export function SenderList() {
 
           <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
             <p className="text-sm text-gray-500">
-              Showing {filteredSenders.length} of {senders.length} users
+              Showing {paginatedSenders.length} of {filteredSenders.length} users
             </p>
             <div className="flex items-center gap-2">
-              <button className="px-3 py-1 border border-gray-200 rounded-lg text-sm disabled:opacity-50">
+              <button 
+                onClick={handlePrevPage}
+                disabled={currentPage === 0}
+                className="px-3 py-1 border border-gray-200 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
                 Prev
               </button>
-              <button className="px-3 py-1 bg-[#1E3A8A] text-white rounded-lg text-sm">
+              <span className="text-sm text-gray-600">
+                Page {currentPage + 1} of {Math.max(1, totalPages)}
+              </span>
+              <button 
+                onClick={handleNextPage}
+                disabled={currentPage >= totalPages - 1}
+                className="px-3 py-1 bg-[#1E3A8A] text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#1e3a8a]/90"
+              >
                 Next
               </button>
             </div>

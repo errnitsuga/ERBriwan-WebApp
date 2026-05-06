@@ -5,7 +5,6 @@ import {
   UserPlus, 
   Users, 
   ShieldAlert, 
-  Bell,
   LogOut,
   Menu
 } from 'lucide-react';
@@ -102,11 +101,6 @@ export function Layout({ onLogout }: { onLogout: () => void }) {
             </h2>
           </div>
           <div className="flex items-center gap-4">
-            <button className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 relative">
-              <Bell size={20} />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-            </button>
-            <div className="hidden sm:block h-8 w-px bg-gray-200 mx-2"></div>
             <div className="hidden sm:flex items-center gap-3">
               <div className="text-right">
                 <p className="text-sm font-semibold text-gray-800">Admin User</p>
