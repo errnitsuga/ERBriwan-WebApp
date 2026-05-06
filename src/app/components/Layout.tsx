@@ -5,7 +5,6 @@ import {
   UserPlus, 
   Users, 
   ShieldAlert, 
-  Bell,
   LogOut,
   Menu
 } from 'lucide-react';
@@ -102,11 +101,6 @@ export function Layout({ onLogout }: { onLogout: () => void }) {
             </h2>
           </div>
           <div className="flex items-center gap-4">
-            <button className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 relative">
-              <Bell size={20} />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-            </button>
-            <div className="hidden sm:block h-8 w-px bg-gray-200 mx-2"></div>
             <div className="hidden sm:flex items-center gap-3">
               <div className="text-right">
                 <p className="text-sm font-semibold text-gray-800">Admin User</p>
@@ -130,12 +124,13 @@ export function Layout({ onLogout }: { onLogout: () => void }) {
       {/* Mobile navigation drawer */}
       {isMobileNavOpen && (
         <div className="fixed inset-0 z-30 flex md:hidden">
-          <button
-            type="button"
-            className="flex-1 bg-black/40"
-            onClick={() => setIsMobileNavOpen(false)}
-          />
-          <aside className="relative w-72 max-w-[80%] bg-[#1E3A8A] text-white flex flex-col shadow-2xl">
+          <motion.aside
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="relative w-72 max-w-[80%] bg-[#1E3A8A] text-white flex flex-col shadow-2xl"
+          >
             <div className="p-6 flex flex-col items-center border-b border-blue-800/50 flex-shrink-0">
               <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-4 shadow-inner">
                 <img 
@@ -190,7 +185,12 @@ export function Layout({ onLogout }: { onLogout: () => void }) {
                 <span className="font-medium">Logout</span>
               </button>
             </div>
-          </aside>
+          </motion.aside>
+          <button
+            type="button"
+            className="flex-1 bg-black/40"
+            onClick={() => setIsMobileNavOpen(false)}
+          />
         </div>
       )}
     </div>

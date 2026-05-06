@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
   Search,
-  Filter,
   MoreVertical,
   BadgeCheck,
   Clock,
@@ -193,6 +192,8 @@ const getBucketKey = (dateValue: string, filter: TimeFilter) => {
 
 export function ReceiverList() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(0);
+  const ITEMS_PER_PAGE = 10;
   const [receivers, setReceivers] = useState<Responder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -422,6 +423,51 @@ export function ReceiverList() {
     }
   };
 
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [searchTerm]);
+
+  const filteredReceivers = receivers.filter((r: Responder) => {
+    const searchLower = normalizeSearchText(searchTerm);
+    if (!searchLower) {
+      return true;
+    }
+
+    const searchableText = normalizeSearchText(
+      [
+        r.firstname || "",
+        r.lastname || "",
+        r.email || "",
+        r.organization || "",
+        r.region || "",
+        r.city_municipality || "",
+        r.barangay || "",
+        r.phone_number || "",
+      ].join(" "),
+    );
+
+    return searchableText.includes(searchLower);
+  });
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredReceivers.length / ITEMS_PER_PAGE);
+  const paginatedReceivers = filteredReceivers.slice(
+    currentPage * ITEMS_PER_PAGE,
+    (currentPage + 1) * ITEMS_PER_PAGE,
+  );
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages - 1) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 0) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
   const donutData = [
     { name: "Resolved", value: performanceData.resolvedCount },
     { name: "Unresolved", value: performanceData.unresolvedCount },
@@ -438,7 +484,7 @@ export function ReceiverList() {
             Manage and monitor all emergency responders in the system.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto">
           <div className="relative">
             <Search
               className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
@@ -452,12 +498,6 @@ export function ReceiverList() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button
-            onClick={fetchResponders}
-            className="p-2 bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50"
-          >
-            <Filter size={20} />
-          </button>
         </div>
       </div>
 
@@ -515,29 +555,7 @@ export function ReceiverList() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {receivers
-                  .filter((r: Responder) => {
-                    const searchLower = normalizeSearchText(searchTerm);
-                    if (!searchLower) {
-                      return true;
-                    }
-
-                    const searchableText = normalizeSearchText(
-                      [
-                        r.firstname || "",
-                        r.lastname || "",
-                        r.email || "",
-                        r.organization || "",
-                        r.region || "",
-                        r.city_municipality || "",
-                        r.barangay || "",
-                        r.phone_number || "",
-                      ].join(" "),
-                    );
-
-                    return searchableText.includes(searchLower);
-                  })
-                  .map((receiver: Responder) => (
+                {paginatedReceivers.map((receiver: Responder) => (
                     <tr
                       key={receiver.id}
                       className="hover:bg-blue-50/30 transition-colors"
@@ -624,17 +642,28 @@ export function ReceiverList() {
             </table>
           )}
         </div>
-        {receivers.length > 0 && !loading && (
+        {filteredReceivers.length > 0 && !loading && (
           <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
             <p className="text-sm text-gray-500">
-              Showing {Math.min(receivers.length, 10)} of {receivers.length}{" "}
+              Showing {paginatedReceivers.length} of {filteredReceivers.length}{" "}
               responders
             </p>
             <div className="flex items-center gap-2">
-              <button className="px-3 py-1 border border-gray-200 rounded-lg text-sm disabled:opacity-50">
+              <button 
+                onClick={handlePrevPage}
+                disabled={currentPage === 0}
+                className="px-3 py-1 border border-gray-200 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
                 Prev
               </button>
-              <button className="px-3 py-1 bg-[#1E3A8A] text-white rounded-lg text-sm">
+              <span className="text-sm text-gray-600">
+                Page {currentPage + 1} of {Math.max(1, totalPages)}
+              </span>
+              <button 
+                onClick={handleNextPage}
+                disabled={currentPage >= totalPages - 1}
+                className="px-3 py-1 bg-[#1E3A8A] text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#1e3a8a]/90"
+              >
                 Next
               </button>
             </div>
